@@ -1,0 +1,67 @@
+завдання 4
+import subprocess
+
+# Копіюємо файл dz1.py у dz1_run.py
+subprocess.run(["cp", "dz1.py", "dz1_run.py"])
+
+# Додаємо shebang у dz1_run.py
+with open("dz1_run.py", "r") as file:
+    content = file.readlines()
+
+with open("dz1_run.py", "w") as file:
+    file.write("#!/usr/bin/python3\n")
+    file.writelines(content)
+
+# Змінюємо права доступу, щоб тільки власник мав доступ
+subprocess.run(["chmod", "700", "dz1_run.py"])
+
+# Запускаємо файл dz1_run.py
+subprocess.run(["./dz1_run.py"])
+
+
+
+
+
+
+
+
+завдання 3
+
+import subprocess
+import os
+import random
+from datetime import datetime, timedelta
+
+# Отримуємо ім'я користувача
+user = subprocess.run(["whoami"], capture_output=True, text=True).stdout.strip()
+print(f"Ім'я користувача: {user}")
+
+# Отримуємо поточну директорію
+current_dir = subprocess.run(["pwd"], capture_output=True, text=True).stdout.strip()
+print(f"Поточна директорія: {current_dir}")
+
+# Створюємо директорію dz1
+dz1_path = os.path.join(current_dir, "dz1")
+os.makedirs(dz1_path, exist_ok=True)
+
+# Отримуємо перший і останній день поточного місяця
+today = datetime.now()
+first_day = today.replace(day=1)
+last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+# Створюємо файли для кожного дня місяця
+for day in range((last_day - first_day).days + 1):
+    date = first_day + timedelta(days=day)
+    filename = date.strftime("%d-%m-%Y.log")
+    file_path = os.path.join(dz1_path, filename)
+    with open(file_path, "w") as f:
+        f.write(f"Log for {filename}")
+
+# Змінюємо власника директорії на root
+subprocess.run(["sudo", "chown", "-R", "root:root", dz1_path])
+
+# Видаляємо 5 випадкових файлів
+files = os.listdir(dz1_path)
+random_files = random.sample(files, min(5, len(files)))
+for file in random_files:
+    os.remove(os.path.join(dz1_path, file))
