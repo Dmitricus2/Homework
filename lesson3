@@ -1,0 +1,138 @@
+4 завдання 
+import argparse
+import socket
+
+class RpcVal:
+    def __init__(self, key):
+        self.key = key
+
+class RpcClient:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.local_data = {}
+
+    def __setitem__(self, key, value):
+        # Якщо це RpcVal (серверне значення)
+        if isinstance(value, RpcVal):
+            self._send_command(f'set "{key}" {value.key}')
+        else:
+            # Локальне збереження
+            self.local_data[key] = value
+            print(f"Local set: {key} = {value}")
+
+    def __getitem__(self, key):
+        if key in self.local_data:
+            # Повертає локальне значення
+            return self.local_data[key]
+        else:
+            # Повертає значення із сервера
+            return self._send_command(f'get "{key}"')
+
+    def __delitem__(self, key):
+        if key in self.local_data:
+            del self.local_data[key]
+
+    def __contains__(self, key):
+        return key in self.local_data
+
+    def add_val(self, rpc_val):
+        if not isinstance(rpc_val, RpcVal):
+            raise ValueError("Expected RpcVal instance")
+        # Створення змінної на сервері
+        response = self._send_command(f'get "{rpc_val.key}"')
+        print(f"Server link created: {rpc_val.key}, response: {response}")
+
+    def _send_command(self, command):
+        # Відправляє команду на сервер і отримує відповідь
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((self.host, int(self.port)))
+            sock.sendall(f"{command}\n".encode('utf-8'))
+            response = sock.recv(1024).decode('utf-8').strip()
+        return response
+
+# Функція для запуску з командного рядка
+def main():
+    parser = argparse.ArgumentParser(description="RPC Client")
+    parser.add_argument('--host', type=str, required=True, help="Server host")
+    parser.add_argument('--port', type=int, required=True, help="Server port")
+    args = parser.parse_args()
+
+    rpc_client = RpcClient(host=args.host, port=args.port)
+    print("RPC Client initialized.")
+    
+    # Тестовий сценарій
+    rpc_client['x'] = 4
+    rpc_client.add_val(RpcVal('y'))
+    print(rpc_client['y'])  # ('Error: empty value')
+    rpc_client['y'] = 5
+    print(rpc_client['y'])  # (5)
+    rpc_client['y'] += 4
+    print(rpc_client['y'])  # (9)
+    print(rpc_client['x'] + rpc_client['y'])  # Сума x і y
+
+if __name__ == "__main__":
+    main()
+
+
+
+завдання 3
+
+import socket
+
+# Глобальний словник
+data = {}
+
+def handle_client(client_socket):
+    while True:
+        try:
+            # Приймаємо запит від клієнта
+            request = client_socket.recv(1024).decode('utf-8').strip()
+            if not request:
+                break
+            
+            if request.startswith("get "):
+                key = request[5:-1]  # Видаляємо "get " і лапки
+                value = data.get(key)
+                if value is not None:
+                    client_socket.send(f"Result: {value}\n".encode('utf-8'))
+                else:
+                    client_socket.send("Error: empty value\n".encode('utf-8'))
+            
+            elif request.startswith("set "):
+                try:
+                    parts = request[5:].split('" ')
+                    key = parts[0].strip('"')
+                    value = parts[1].strip()
+                    if value.isdigit():
+                        data[key] = int(value)
+                        client_socket.send(f"Set successful: {key} = {value}\n".encode('utf-8'))
+                    else:
+                        client_socket.send("Error: not a number\n".encode('utf-8'))
+                except IndexError:
+                    client_socket.send("Error: invalid set command\n".encode('utf-8'))
+            
+            elif request == "getkeys":
+                keys = ", ".join(data.keys())
+                client_socket.send(f"Keys: {keys}\n".encode('utf-8'))
+            
+            else:
+                client_socket.send("Error: unknown command\n".encode('utf-8'))
+        except Exception as e:
+            client_socket.send(f"Error: {str(e)}\n".encode('utf-8'))
+
+    client_socket.close()
+
+def main():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(("0.0.0.0", 53554))
+    server.listen(5)
+    print("Server listening on port 53554...")
+    
+    while True:
+        client_socket, addr = server.accept()
+        print(f"Accepted connection from {addr}")
+        handle_client(client_socket)
+
+if __name__ == "__main__":
+    main()
