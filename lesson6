@@ -1,0 +1,79 @@
+завдання 2
+
+-- Таблиця Користувачів
+CREATE TABLE User (
+    Id SERIAL PRIMARY KEY,
+    Email VARCHAR(255) NOT NULL UNIQUE,
+    Password VARCHAR(255) NOT NULL,
+    FirstName VARCHAR(100) NOT NULL,
+    LastName VARCHAR(100) NOT NULL,
+    DogName VARCHAR(100), -- Опціональне поле
+    Photo TEXT -- Опціональне поле
+);
+
+-- Таблиця Курсів
+CREATE TABLE Course (
+    Id SERIAL PRIMARY KEY,
+    TeacherId INT NOT NULL REFERENCES User(Id), -- Посилання на користувача в ролі викладача
+    Name VARCHAR(255) NOT NULL,
+    Description TEXT
+);
+
+-- Проміжна таблиця для зв'язку Курсів і Студентів
+CREATE TABLE CourseStudent (
+    CourseId INT NOT NULL REFERENCES Course(Id) ON DELETE CASCADE,
+    StudentId INT NOT NULL REFERENCES User(Id) ON DELETE CASCADE,
+    PRIMARY KEY (CourseId, StudentId)
+);
+
+-- Таблиця Занять
+CREATE TABLE Lesson (
+    Id SERIAL PRIMARY KEY,
+    CourseId INT NOT NULL REFERENCES Course(Id) ON DELETE CASCADE, -- Посилання на курс
+    Name VARCHAR(255) NOT NULL,
+    Description TEXT
+);
+
+-- Таблиця Домашніх завдань
+CREATE TABLE Homework (
+    Id SERIAL PRIMARY KEY,
+    CourseId INT NOT NULL REFERENCES Course(Id) ON DELETE CASCADE, -- Посилання на курс
+    Description TEXT NOT NULL,
+    MaxGrade INT NOT NULL
+);
+
+-- Таблиця Відповідей на домашні завдання
+CREATE TABLE HomeworkAnswer (
+    Id SERIAL PRIMARY KEY,
+    HomeworkId INT NOT NULL REFERENCES Homework(Id) ON DELETE CASCADE, -- Посилання на завдання
+    Description TEXT NOT NULL,
+    StudentId INT NOT NULL REFERENCES User(Id) ON DELETE CASCADE, -- Посилання на студента
+    Grade INT
+);
+
+
+завдання 3
+
+-- Додаємо поле Номер телефону та видаляємо поле Ім’я собаки у таблиці User
+ALTER TABLE User
+ADD COLUMN PhoneNumber VARCHAR(15);
+
+ALTER TABLE User
+DROP COLUMN DogName;
+
+-- Додаємо нову таблицю "Оцінка ДЗ"
+CREATE TABLE HomeworkGrade (
+    Id SERIAL PRIMARY KEY,
+    HomeworkAnswerId INT NOT NULL REFERENCES HomeworkAnswer(Id) ON DELETE CASCADE, -- Посилання на відповідь
+    Date DATE NOT NULL,
+    Grade INT NOT NULL,
+    TeacherId INT NOT NULL REFERENCES User(Id) -- Посилання на вчителя
+);
+
+-- Додаємо поле Дедлайн до таблиці Домашніх завдань
+ALTER TABLE Homework
+ADD COLUMN Deadline DATE;
+
+-- Додаємо поле Дата здачі до таблиці Відповідей на домашні завдання
+ALTER TABLE HomeworkAnswer
+ADD COLUMN SubmissionDate DATE;
