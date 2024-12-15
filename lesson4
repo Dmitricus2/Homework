@@ -1,0 +1,56 @@
+from flask import Flask, request, jsonify
+import random
+import string
+import datetime
+import inspect
+
+app = Flask(__name__)
+
+# Завдання 3: /whoami
+@app.route('/whoami', methods=['GET'])
+def whoami():
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    client_ip = request.remote_addr
+    server_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    return jsonify({
+        "browser": user_agent,
+        "client_ip": client_ip,
+        "server_time": server_time
+    })
+
+# Завдання 4: /source_code
+@app.route('/source_code', methods=['GET'])
+def source_code():
+    with open(__file__, 'r') as file:
+        code = file.read()
+    return f"<pre>{code}</pre>", 200, {'Content-Type': 'text/html'}
+
+# Завдання 5: /random
+@app.route('/random', methods=['GET'])
+def random_string():
+    # Параметри з URL
+    length = request.args.get('length', default=8, type=int)
+    specials = request.args.get('specials', default=0, type=int)
+    digits = request.args.get('digits', default=0, type=int)
+    
+    # Перевірка валідності параметрів
+    if length < 1 or length > 100:
+        return jsonify({"error": "length must be between 1 and 100"}), 400
+    if specials not in [0, 1] or digits not in [0, 1]:
+        return jsonify({"error": "specials and digits must be 0 or 1"}), 400
+
+    # Базовий набір символів
+    chars = string.ascii_letters  # Літери a-z, A-Z
+    if specials == 1:
+        chars += "!\"№;%:?*()_+"
+    if digits == 1:
+        chars += string.digits  # Числа 0-9
+
+    # Генерація випадкового рядка
+    random_str = ''.join(random.choices(chars, k=length))
+    return jsonify({"random_string": random_str})
+
+# Запуск додатку
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=5000)
